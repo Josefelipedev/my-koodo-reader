@@ -14,6 +14,8 @@ import { ConfigService } from "../../assets/lib/kookit-extra-browser.min";
 import * as Kookit from "../../assets/lib/kookit.min";
 import { removeSearchParams } from "../../utils/common";
 import { BookHelper } from "../../assets/lib/kookit.min";
+import { isElectron } from "react-device-detect";
+import { getStoredAuth } from "../appGate/component";
 declare var window: any;
 
 class Redirect extends React.Component<RedirectProps, RedirectState> {
@@ -35,7 +37,11 @@ class Redirect extends React.Component<RedirectProps, RedirectState> {
   componentDidMount() {
     let url = document.location.href;
     if (document.location.hash === "#/" && url.indexOf("code") === -1) {
-      this.props.history.push("/manager/home");
+      if (isElectron || getStoredAuth()) {
+        this.props.history.push("/manager/home");
+      } else {
+        this.props.history.push("/app-gate");
+      }
     }
     if (url.indexOf("error") > -1) {
       this.setState({ isError: true });

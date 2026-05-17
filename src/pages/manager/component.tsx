@@ -1,4 +1,6 @@
 import React from "react";
+import { isElectron } from "react-device-detect";
+import { getStoredAuth } from "../appGate/component";
 import Sidebar from "../../containers/sidebar";
 import Header from "../../containers/header";
 import DeleteDialog from "../../components/dialogs/deleteDialog";
@@ -70,6 +72,10 @@ class Manager extends React.Component<ManagerProps, ManagerState> {
     }
   }
   UNSAFE_componentWillMount() {
+    if (!isElectron && !getStoredAuth()) {
+      this.props.history.push("/app-gate");
+      return;
+    }
     this.props.handleFetchBooks();
     this.props.handleFetchPlugins();
     this.props.handleFetchNotes();
