@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -73,6 +74,18 @@ func upsertBook(key, name, author, desc, cover, format, publisher string, size i
 			publisher   = excluded.publisher,
 			size        = excluded.size
 	`, key, name, author, desc, cover, format, publisher, size)
+	return err
+}
+
+func updateBookMeta(key, name, author, desc, publisher string) error {
+	db, err := openBooksDBWrite()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	_, err = db.Exec(`
+		UPDATE books SET name=?, author=?, description=?, publisher=? WHERE key=?
+	`, name, author, desc, publisher, key)
 	return err
 }
 
@@ -399,6 +412,47 @@ func handleBookUpload(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// PUT /books/{key} — update book metadata (admin only)
+func handleBookUpdate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPut {
+		writePlain(w, http.StatusMethodNotAllowed, "Method Not Allowed")
+		return
+	}
+	user, ok := authenticatedUser(r)
+	if !ok {
+		writePlain(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+	if user.Role != "admin" {
+		writePlain(w, http.StatusForbidden, "Forbidden: admin only")
+		return
+	}
+
+	key := strings.Trim(strings.TrimPrefix(r.URL.Path, "/books/"), "/")
+	if key == "" {
+		writePlain(w, http.StatusBadRequest, "Missing book key")
+		return
+	}
+
+	var body struct {
+		Name      string `json:"name"`
+		Author    string `json:"author"`
+		Desc      string `json:"description"`
+		Publisher string `json:"publisher"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writePlain(w, http.StatusBadRequest, "Invalid JSON")
+		return
+	}
+
+	if err := updateBookMeta(key, body.Name, body.Author, body.Desc, body.Publisher); err != nil {
+		log.Printf("[books] update error: %v", err)
+		writePlain(w, http.StatusInternalServerError, "Internal Server Error")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"success": true, "key": key})
+}
+
 // DELETE /books/{key} — remove a book (admin only)
 func handleBookDelete(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
@@ -471,17 +525,22 @@ func handleBooksList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type item struct {
-		Key    string `json:"key"`
-		Name   string `json:"name"`
-		Author string `json:"author"`
-		Format string `json:"format"`
-		Cover  string `json:"cover"`
-		Size   int64  `json:"size"`
+		Key         string `json:"key"`
+		Name        string `json:"name"`
+		Author      string `json:"author"`
+		Description string `json:"description"`
+		Publisher   string `json:"publisher"`
+		Format      string `json:"format"`
+		Cover       string `json:"cover"`
+		Size        int64  `json:"size"`
 	}
 	result := make([]item, 0, len(books))
 	for _, b := range books {
-		result = append(result, item{Key: b.Key, Name: b.Name, Author: b.Author,
-			Format: b.Format, Cover: b.Cover, Size: b.Size})
+		result = append(result, item{
+			Key: b.Key, Name: b.Name, Author: b.Author,
+			Description: b.Description, Publisher: b.Publisher,
+			Format: b.Format, Cover: b.Cover, Size: b.Size,
+		})
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"success": true, "books": result, "total": len(result)})
 }

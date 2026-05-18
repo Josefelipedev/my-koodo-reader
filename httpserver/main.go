@@ -478,7 +478,14 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if strings.HasPrefix(path, "/books/") {
-		handleBookDelete(w, r)
+		switch r.Method {
+		case http.MethodPut:
+			handleBookUpdate(w, r)
+		case http.MethodDelete:
+			handleBookDelete(w, r)
+		default:
+			writePlain(w, http.StatusMethodNotAllowed, "Method Not Allowed")
+		}
 		return
 	}
 
