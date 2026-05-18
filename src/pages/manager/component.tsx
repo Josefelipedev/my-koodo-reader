@@ -1,6 +1,7 @@
 import React from "react";
 import { isElectron } from "react-device-detect";
-import { getStoredAuth } from "../appGate/component";
+import { getStoredAuth, getStoredRole } from "../appGate/component";
+import UploadDialog from "../../components/dialogs/uploadDialog";
 import Sidebar from "../../containers/sidebar";
 import Header from "../../containers/header";
 import DeleteDialog from "../../components/dialogs/deleteDialog";
@@ -43,6 +44,7 @@ class Manager extends React.Component<ManagerProps, ManagerState> {
       isUpdated: false,
       isDrag: false,
       token: "",
+      isUploadOpen: false,
     };
   }
 
@@ -227,6 +229,18 @@ class Manager extends React.Component<ManagerProps, ManagerState> {
         {this.props.isOpenSortShelfDialog && <SortShelfDialog />}
         {this.props.isSettingOpen && <SettingDialog />}
         {this.props.isDetailDialog && <DetailDialog />}
+        {this.state.isUploadOpen && (
+          <UploadDialog onClose={() => this.setState({ isUploadOpen: false })} />
+        )}
+        {!isElectron && getStoredRole() === "admin" && (
+          <button
+            className="upload-fab"
+            title={this.props.t("Upload Books to Server")}
+            onClick={() => this.setState({ isUploadOpen: true })}
+          >
+            <span className="icon-upload-line" />
+          </button>
+        )}
         {(!books || books.length === 0) && this.state.totalBooks ? null : (
           <Switch>
             {routes.map((ele) => (

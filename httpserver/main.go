@@ -456,9 +456,29 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	path := r.URL.Path
 
+	// Auth info route.
+	if path == "/auth/me" {
+		handleAuthMe(w, r)
+		return
+	}
+
 	// Admin user-management routes — auth handled inside handleAdminUsers.
 	if path == "/admin/users" || strings.HasPrefix(path, "/admin/users/") {
 		handleAdminUsers(w, r)
+		return
+	}
+
+	// Books API routes.
+	if path == "/books/upload" {
+		handleBookUpload(w, r)
+		return
+	}
+	if path == "/books/list" {
+		handleBooksList(w, r)
+		return
+	}
+	if strings.HasPrefix(path, "/books/") {
+		handleBookDelete(w, r)
 		return
 	}
 

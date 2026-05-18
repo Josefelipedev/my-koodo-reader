@@ -15,7 +15,9 @@ import BackgroundSetting from "../../../containers/settings/backgroundSetting";
 import ChapterSetting from "../../../containers/settings/chapterSetting";
 import DictSetting from "../../../containers/settings/dictSetting";
 import MoreSetting from "../../../containers/settings/moreSetting";
+import AdminSetting from "../../../containers/settings/adminSetting";
 import { isElectron } from "react-device-detect";
+import { getStoredRole } from "../../../pages/appGate/component";
 class SettingDialog extends React.Component<
   SettingInfoProps,
   SettingInfoState
@@ -79,6 +81,8 @@ class SettingDialog extends React.Component<
         return "Local dictionary";
       case "more":
         return "More settings";
+      case "admin":
+        return "Library Users";
       default:
         return "Setting";
     }
@@ -153,6 +157,15 @@ class SettingDialog extends React.Component<
               )}
             {this.renderSidebarItem("about", "icon-detail", "About", "18px")}
           </div>
+
+          {getStoredRole() === "admin" && (
+            <>
+              <hr className="setting-dialog-sidebar-divider" />
+              <div className="setting-dialog-sidebar-group">
+                {this.renderSidebarItem("admin", "icon-user", "Library Users", "18px")}
+              </div>
+            </>
+          )}
         </div>
 
         {/* 右侧主内容区 */}
@@ -196,6 +209,8 @@ class SettingDialog extends React.Component<
               <DictSetting />
             ) : this.props.settingMode === "more" ? (
               <MoreSetting />
+            ) : this.props.settingMode === "admin" ? (
+              <AdminSetting />
             ) : (
               <PluginSetting />
             )}

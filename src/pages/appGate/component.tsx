@@ -18,9 +18,23 @@ export function getStoredAuth(): boolean {
 
 export function getStoredUsername(): string {
   try {
-    const raw = localStorage.getItem(AUTH_KEY);
-    if (!raw) return "";
-    return JSON.parse(raw).username || "";
+    return JSON.parse(localStorage.getItem(AUTH_KEY) || "{}").username || "";
+  } catch {
+    return "";
+  }
+}
+
+export function getStoredRole(): string {
+  try {
+    return JSON.parse(localStorage.getItem(AUTH_KEY) || "{}").role || "member";
+  } catch {
+    return "member";
+  }
+}
+
+export function getStoredCredentials(): string {
+  try {
+    return JSON.parse(localStorage.getItem(AUTH_KEY) || "{}").cred || "";
   } catch {
     return "";
   }
@@ -30,8 +44,11 @@ export function clearStoredAuth() {
   localStorage.removeItem(AUTH_KEY);
 }
 
-function saveAuth(username: string) {
-  localStorage.setItem(AUTH_KEY, JSON.stringify({ at: Date.now(), username }));
+function saveAuth(username: string, cred: string, role: string) {
+  localStorage.setItem(
+    AUTH_KEY,
+    JSON.stringify({ at: Date.now(), username, cred, role })
+  );
 }
 
 class AppGate extends React.Component<AppGateProps, AppGateState> {
@@ -56,19 +73,26 @@ class AppGate extends React.Component<AppGateProps, AppGateState> {
     this.setState({ loading: true, error: "" });
 
     try {
-      const credentials = btoa(`${username}:${password}`);
-      const res = await fetch("/list?dir=", {
-        headers: { Authorization: `Basic ${credentials}` },
+      const cred = btoa(`${username}:${password}`);
+
+      // Validate credentials against the file server.
+      const res = await fetch("/auth/me", {
+        headers: { Authorization: `Basic ${cred}` },
       });
 
       if (res.ok) {
-        saveAuth(username);
+        const data = await res.json();
+        const role: string = data.role || "member";
+        saveAuth(username, cred, role);
         this.props.history.push("/manager/home");
       } else {
         this.setState({ error: "Invalid username or password", loading: false });
       }
     } catch {
-      this.setState({ error: "Could not reach server. Try again.", loading: false });
+      this.setState({
+        error: "Could not reach server. Try again.",
+        loading: false,
+      });
     }
   };
 

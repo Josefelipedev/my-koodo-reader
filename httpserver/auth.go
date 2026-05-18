@@ -142,6 +142,25 @@ func authenticatedUser(r *http.Request) (*appUser, bool) {
 	return dbVerifyUser(pair[0], pair[1])
 }
 
+// handleAuthMe serves GET /auth/me and returns username + role of the caller.
+func handleAuthMe(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writePlain(w, http.StatusMethodNotAllowed, "Method Not Allowed")
+		return
+	}
+	user, ok := authenticatedUser(r)
+	if !ok {
+		w.Header().Set("WWW-Authenticate", `Basic realm="Koodo Library"`)
+		writePlain(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"success":  true,
+		"username": user.Username,
+		"role":     user.Role,
+	})
+}
+
 // handleAdminUsers serves GET/POST/DELETE /admin/users[/{username}].
 // Requires admin role.
 func handleAdminUsers(w http.ResponseWriter, r *http.Request) {
