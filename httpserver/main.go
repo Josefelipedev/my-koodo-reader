@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -144,24 +143,10 @@ func getServerOrigin(r *http.Request) string {
 	return scheme + "://" + host
 }
 
+// authenticate is kept for OPDS and KOReader handlers that only need a bool.
 func authenticate(r *http.Request) bool {
-	authHeader := r.Header.Get("Authorization")
-	if authHeader == "" {
-		return false
-	}
-	parts := strings.SplitN(authHeader, " ", 2)
-	if len(parts) != 2 || parts[0] != "Basic" {
-		return false
-	}
-	decoded, err := base64.StdEncoding.DecodeString(parts[1])
-	if err != nil {
-		return false
-	}
-	pair := strings.SplitN(string(decoded), ":", 2)
-	if len(pair) != 2 {
-		return false
-	}
-	return pair[0] == credentials.username && pair[1] == credentials.password
+	_, ok := authenticatedUser(r)
+	return ok
 }
 
 // sanitizeFilename keeps only the base name and replaces Windows-illegal chars.
@@ -469,15 +454,39 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Basic Auth
-	if !authenticate(r) {
+	path := r.URL.Path
+
+	// Admin user-management routes — auth handled inside handleAdminUsers.
+	if path == "/admin/users" || strings.HasPrefix(path, "/admin/users/") {
+		handleAdminUsers(w, r)
+		return
+	}
+
+	// OPDS routes — auth handled inside opdsHandler.
+	if opdsEnabled && (path == "/opds" || path == "/opds/" || strings.HasPrefix(path, "/opds/")) {
+		opdsHandler(w, r)
+		return
+	}
+
+	// All file-server routes require authentication.
+	user, ok := authenticatedUser(r)
+	if !ok {
 		w.Header().Set("WWW-Authenticate", `Basic realm="Secure File Server"`)
 		writePlain(w, http.StatusUnauthorized, "Unauthorized")
 		return
 	}
 
 	dirParam := r.URL.Query().Get("dir")
-	path := r.URL.Path
+
+	// Members are isolated to their own subdirectory; admins have full access.
+	if user.Role == "member" {
+		userBase := "users/" + user.Username
+		if dirParam == "" {
+			dirParam = userBase
+		} else {
+			dirParam = userBase + "/" + strings.TrimPrefix(dirParam, "/")
+		}
+	}
 
 	switch {
 	case r.Method == http.MethodPost && path == "/upload":
@@ -488,15 +497,12 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		handleDelete(w, r, dirParam)
 	case r.Method == http.MethodGet && path == "/list":
 		handleList(w, r, dirParam)
-	case opdsEnabled && (path == "/opds" || path == "/opds/" || strings.HasPrefix(path, "/opds/")):
-		opdsHandler(w, r)
 	default:
 		writePlain(w, http.StatusNotFound, "Not Found")
 	}
 }
 
 func main() {
-	// Initialise KOReader sync server (reads env, opens DB if enabled).
 	initKoreader()
 
 	if !serverEnabled && !koreaderEnabled {
@@ -513,6 +519,11 @@ func main() {
 
 	if err := os.MkdirAll(uploadDir, 0o755); err != nil {
 		log.Fatalf("Cannot create uploads directory: %v", err)
+	}
+
+	// Initialize user DB (required for file server auth).
+	if serverEnabled {
+		initUserDB()
 	}
 
 	// Start KOReader sync server in background if enabled.

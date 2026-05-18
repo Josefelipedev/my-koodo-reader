@@ -16,8 +16,22 @@ export function getStoredAuth(): boolean {
   }
 }
 
-function saveAuth() {
-  localStorage.setItem(AUTH_KEY, JSON.stringify({ at: Date.now() }));
+export function getStoredUsername(): string {
+  try {
+    const raw = localStorage.getItem(AUTH_KEY);
+    if (!raw) return "";
+    return JSON.parse(raw).username || "";
+  } catch {
+    return "";
+  }
+}
+
+export function clearStoredAuth() {
+  localStorage.removeItem(AUTH_KEY);
+}
+
+function saveAuth(username: string) {
+  localStorage.setItem(AUTH_KEY, JSON.stringify({ at: Date.now(), username }));
 }
 
 class AppGate extends React.Component<AppGateProps, AppGateState> {
@@ -48,7 +62,7 @@ class AppGate extends React.Component<AppGateProps, AppGateState> {
       });
 
       if (res.ok) {
-        saveAuth();
+        saveAuth(username);
         this.props.history.push("/manager/home");
       } else {
         this.setState({ error: "Invalid username or password", loading: false });

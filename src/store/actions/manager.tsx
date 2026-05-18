@@ -2,6 +2,10 @@ import {
   ConfigService,
   TokenService,
 } from "../../assets/lib/kookit-extra-browser.min";
+import {
+  getStoredAuth,
+  getStoredUsername,
+} from "../../pages/appGate/component";
 import BookModel from "../../models/Book";
 import PluginModel from "../../models/Plugin";
 import { Dispatch } from "redux";
@@ -551,16 +555,17 @@ export function handleFetchPlugins() {
 }
 export function handleFetchAuthed() {
   return (dispatch: Dispatch) => {
-    try {
-      TokenService.getToken("is_authed").then((value) => {
-        let isAuthed = value === "yes";
-        if (isAuthed && !ConfigService.getItem("serverRegion")) {
-          ConfigService.setItem("serverRegion", "global");
-        }
-        dispatch(handleAuthed(isAuthed));
-      });
-    } catch (error) {
-      console.error(error);
+    const isAuthed = getStoredAuth();
+    dispatch(handleAuthed(isAuthed));
+    if (isAuthed) {
+      const username = getStoredUsername();
+      dispatch(
+        handleUserInfo({
+          username: username || "user",
+          type: "pro",
+          email: "",
+        })
+      );
     }
   };
 }
