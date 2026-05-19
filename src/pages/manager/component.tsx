@@ -78,6 +78,7 @@ class Manager extends React.Component<ManagerProps, ManagerState> {
       this.props.history.push("/app-gate");
       return;
     }
+    this.props.handleFetchAuthed();
     this.props.handleFetchBooks();
     this.props.handleFetchPlugins();
     this.props.handleFetchNotes();

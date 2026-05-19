@@ -24,6 +24,7 @@ import {
   handleSortShelfDialog,
   handleShelf,
   handleMode,
+  handleFetchAuthed,
 } from "../../store/actions";
 import { withTranslation } from "react-i18next";
 
@@ -82,6 +83,7 @@ const actionCreator = {
   handleShowPopupNote,
   handleShelf,
   handleMode,
+  handleFetchAuthed,
 };
 export default connect(
   mapStateToProps,
