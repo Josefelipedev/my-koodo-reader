@@ -1,41 +1,40 @@
-# ── Stage 1: Final image ─────────────────────────────────────────────────────
-# React app is pre-built in CI (native runner) and Go binary is cross-compiled
-# in CI, so no build stages are needed here. This eliminates all QEMU-emulated
-# build overhead when targeting linux/arm64.
-### Nginx or Apache can also be used, Caddy is just smaller in size
+# ── Stage 1: Build React app ──────────────────────────────────────────────────
+FROM node:20-alpine AS frontend
+WORKDIR /app
+COPY package.json yarn.lock ./
+RUN yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
+COPY . .
+RUN yarn build
+
+# ── Stage 2: Build Go server ───────────────────────────────────────────────────
+FROM golang:alpine AS backend
+WORKDIR /build
+COPY httpserver/go.mod httpserver/go.sum ./
+RUN go mod download
+COPY httpserver/ ./
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o httpserver .
+
+# ── Stage 3: Final image ───────────────────────────────────────────────────────
 FROM caddy:latest
 
-# Copy pre-built website files (built by CI runner, platform-independent)
-COPY build/ /usr/share/caddy
+COPY --from=frontend /app/build/ /usr/share/caddy
+COPY --from=backend /build/httpserver /app/httpserver
+COPY Caddyfile /etc/caddy/Caddyfile
 
-# Copy pre-compiled Go binary for the target platform
-ARG TARGETARCH
-COPY httpserver/httpserver-linux-${TARGETARCH} /app/httpserver
+RUN mkdir -p /app/uploads && chmod 755 /app/uploads
 
-# Create uploads directory with proper permissions
-RUN mkdir -p /app/uploads && \
-    chmod 755 /app/uploads
+EXPOSE 80 7200
 
-# Expose both Caddy (80), httpServer (8080), and KOReader sync server (7200) ports
-EXPOSE 80 8080 7200
+RUN printf '#!/bin/sh\ncd /app\n/app/httpserver &\ncaddy run --config /etc/caddy/Caddyfile --adapter caddyfile\n' \
+    > /start.sh && chmod +x /start.sh
 
-# Create startup script to run both services
-RUN echo '#!/bin/sh' > /start.sh && \
-    echo 'cd /app' >> /start.sh && \
-    echo '/app/httpserver &' >> /start.sh && \
-    echo 'caddy run --config /etc/caddy/Caddyfile' >> /start.sh && \
-    chmod +x /start.sh
-
-# Set default environment variables (can be overridden at runtime)
-ENV ENABLE_HTTP_SERVER=false
-ENV SERVER_USERNAME=admin
-ENV SERVER_PASSWORD=securePass123
-ENV SERVER_PASSWORD_FILE=my_secret
+ENV ENABLE_HTTP_SERVER=true
+ENV ENABLE_OPDS=true
 ENV ENABLE_KOREADER_SERVER=false
 ENV KOREADER_PORT=7200
 ENV KOREADER_ENABLE_REGISTRATION=true
+ENV SERVER_USERNAME=admin
+ENV SERVER_PASSWORD=securePass123
 
-# Define volume for uploads directory
 VOLUME ["/app/uploads"]
-
 CMD ["/start.sh"]

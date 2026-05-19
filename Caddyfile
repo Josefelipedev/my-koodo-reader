@@ -1,0 +1,60 @@
+:80 {
+    # ── Go API & dynamic routes ────────────────────────────────────────────────
+    handle /auth/* {
+        reverse_proxy localhost:8080
+    }
+    handle /admin/* {
+        reverse_proxy localhost:8080
+    }
+    handle /books/* {
+        reverse_proxy localhost:8080
+    }
+    handle /stats/* {
+        reverse_proxy localhost:8080
+    }
+    handle /opds* {
+        reverse_proxy localhost:8080
+    }
+    # File-serving paths (book files, covers, notes)
+    handle /book/* {
+        reverse_proxy localhost:8080
+    }
+    handle /cover/* {
+        reverse_proxy localhost:8080
+    }
+    handle /note/* {
+        reverse_proxy localhost:8080
+    }
+    handle /data/* {
+        reverse_proxy localhost:8080
+    }
+    # Legacy Koodo sync routes
+    handle /upload {
+        reverse_proxy localhost:8080
+    }
+    handle /download {
+        reverse_proxy localhost:8080
+    }
+    handle /list {
+        reverse_proxy localhost:8080
+    }
+    handle /delete {
+        reverse_proxy localhost:8080
+    }
+    handle /syncs/* {
+        reverse_proxy localhost:8080
+    }
+    handle /users/* {
+        reverse_proxy localhost:8080
+    }
+    handle /healthcheck {
+        reverse_proxy localhost:8080
+    }
+
+    # ── React SPA (catch-all) ──────────────────────────────────────────────────
+    handle {
+        root * /usr/share/caddy
+        try_files {path} /index.html
+        file_server
+    }
+}
