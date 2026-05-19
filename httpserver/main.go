@@ -489,6 +489,24 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Reading stats routes.
+	if path == "/stats/open" {
+		handleStatsOpen(w, r)
+		return
+	}
+	if path == "/stats/me" {
+		handleStatsMe(w, r)
+		return
+	}
+	if path == "/stats/users" {
+		handleStatsUsers(w, r)
+		return
+	}
+	if path == "/stats/user" {
+		handleStatsUserDetail(w, r)
+		return
+	}
+
 	// OPDS routes — auth handled inside opdsHandler.
 	if opdsEnabled && (path == "/opds" || path == "/opds/" || strings.HasPrefix(path, "/opds/")) {
 		opdsHandler(w, r)

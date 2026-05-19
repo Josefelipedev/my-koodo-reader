@@ -16,6 +16,7 @@ import ChapterSetting from "../../../containers/settings/chapterSetting";
 import DictSetting from "../../../containers/settings/dictSetting";
 import MoreSetting from "../../../containers/settings/moreSetting";
 import AdminSetting from "../../../containers/settings/adminSetting";
+import StatsSetting from "../../../containers/settings/statsSetting";
 import { isElectron } from "react-device-detect";
 import { getStoredRole } from "../../../pages/appGate/component";
 class SettingDialog extends React.Component<
@@ -83,6 +84,8 @@ class SettingDialog extends React.Component<
         return "More settings";
       case "admin":
         return "Library Users";
+      case "stats":
+        return "Reading Activity";
       default:
         return "Setting";
     }
@@ -123,6 +126,13 @@ class SettingDialog extends React.Component<
               "More settings",
               "13px"
             )}
+            {!isElectron &&
+              this.renderSidebarItem(
+                "stats",
+                "icon-analysis-line",
+                "Reading Activity",
+                "17px"
+              )}
           </div>
 
           <hr className="setting-dialog-sidebar-divider" />
@@ -211,6 +221,8 @@ class SettingDialog extends React.Component<
               <MoreSetting />
             ) : this.props.settingMode === "admin" ? (
               <AdminSetting />
+            ) : this.props.settingMode === "stats" ? (
+              <StatsSetting />
             ) : (
               <PluginSetting />
             )}

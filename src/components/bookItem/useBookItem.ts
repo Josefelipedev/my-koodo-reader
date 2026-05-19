@@ -3,6 +3,7 @@ import BookModel from "../../models/Book";
 import BookUtil from "../../utils/file/bookUtil";
 import CoverUtil from "../../utils/file/coverUtil";
 import { ConfigService } from "../../assets/lib/kookit-extra-browser.min";
+import { recordBookOpen } from "../../utils/statsApi";
 
 export interface BookItemSharedProps {
   book: BookModel;
@@ -165,6 +166,7 @@ export function useBookItem(props: BookItemSharedProps) {
         return;
       }
       handleReadingBook(book);
+      recordBookOpen(book);
       BookUtil.redirectBook(book);
     },
     [
