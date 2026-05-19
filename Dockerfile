@@ -1,11 +1,10 @@
 # ── Stage 1: Build React app ──────────────────────────────────────────────────
 FROM node:20-alpine AS frontend
-RUN apk add --no-cache git python3 make g++ && \
-    git config --global url."https://github.com/".insteadOf "ssh://git@github.com/" && \
-    git config --global url."https://github.com/".insteadOf "git@github.com:"
+RUN apk add --no-cache git python3 make g++
 WORKDIR /app
 COPY package.json yarn.lock ./
-RUN yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
+RUN printf '[url "https://github.com/"]\n\tinsteadOf = ssh://git@github.com/\n\tinsteadOf = git@github.com:\n' > /root/.gitconfig && \
+    yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
 COPY . .
 RUN yarn build
 
