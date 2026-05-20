@@ -107,8 +107,8 @@ type opdsBook struct {
 }
 
 func openBooksDB() (*sql.DB, error) {
-	dbPath := filepath.Join(uploadDir, "config", "books.db")
-	return sql.Open("sqlite", dbPath+"?_journal=WAL&mode=ro")
+	// Use openBooksDBWrite to ensure schema exists on first access
+	return openBooksDBWrite()
 }
 
 func queryBooks(db *sql.DB, search string) ([]opdsBook, error) {
