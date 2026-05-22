@@ -27,6 +27,7 @@ import SortShelfDialog from "../../components/dialogs/sortShelfDialog";
 import PopupNote from "../../components/popups/popupNote";
 import toast from "react-hot-toast";
 import { supportedFormats } from "../../utils/common";
+import { autoImportServerBooks } from "../../utils/serverSync";
 import Footer from "../../components/footer";
 import ProtectionOverlay from "../../components/protection";
 class Manager extends React.Component<ManagerProps, ManagerState> {
@@ -89,6 +90,7 @@ class Manager extends React.Component<ManagerProps, ManagerState> {
   }
   componentDidMount() {
     this.props.handleReadingState(false);
+    autoImportServerBooks(this.props.importBookFunc);
     // Auto switch to configured startup shelf
     const startupShelf = ConfigService.getReaderConfig("startupShelf");
     if (startupShelf) {
